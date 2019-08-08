@@ -1,0 +1,14 @@
+cc6efbb2cb6017230d7a6a3b7d125a08 *DESCRIPTION
+d4105ec9916b0b640f68a560a88c0f2d *NAMESPACE
+6cce9070c22591aad730e07bd56ce904 *NEWS.md
+45ad514371ca43fd65eaecdf63692c3f *R/charts.R
+f01497bda2b8f69e653e4a871f6da251 *R/conditionalRandomEffect.R
+ac6d625eb94bd46b98ea33db16d27c66 *R/package-init.R
+eb969431c1b252885594b5e7c69e0cbd *R/predict.R
+b90062c4b326477600153dd3b75e33e1 *README.md
+1e8903daa421bab52ac99050343a85c3 *data/samplePatients.rda
+393d4f00264be42c1d9d5cf7c5667738 *man/plotExacerbations.Rd
+2b5dd67f19287504ec1dd6e850534670 *man/plotHeatMap.Rd
+c9f6270cc5c000b2c053e4f1d743e2d0 *man/predictACCEPT.Rd
+ba9c5d6aa7d5c95735ee5d3ea6fc926a *man/predictCountProb.Rd
+9eba4146e68f5d0fc6e61f48107f2843 *man/samplePatients.Rd
