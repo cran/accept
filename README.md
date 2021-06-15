@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/resplab/accept.svg?branch=master)](https://travis-ci.org/resplab/accept)
+<!-- badges: start -->
+[![R build status](https://github.com/resplab/accept/workflows/R-CMD-check/badge.svg)](https://github.com/resplab/accept/actions)
+<!-- badges: end -->
 [![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/accept)](https://cran.r-project.org/package=accept)
 [![metacran downloads](https://cranlogs.r-pkg.org/badges/accept)](https://cran.r-project.org/package=accept)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -6,9 +8,13 @@
 # accept
 R package for the ACute COPD Exacerbation Prediction Tool (ACCEPT)
 
-Please refer to the published paper for more information: 
+The package includes two main functions `accept()` and `accept2()`. `accept()` provides predictions of exacerbations for COPD patients per original published manuscript. `accept2()` is an updated version of ACCEPT that is fine tuned for improved precitions in patients who do not have a prior history of exacerbations. Please refer to the published paper for more information: 
 
 Adibi A, Sin DD, Safari A, Jonhson KM, Aaron SD, FitzGerald JM, Sadatsafavi M. The Acute COPD Exacerbation Prediction Tool (ACCEPT): a modelling study. The Lancet Respiratory Medicine. Published Online First 2020 March 13th; [doi:10.1016/S2213-2600(19)30397-2](https://www.thelancet.com/journals/lanres/article/PIIS2213-2600%2819%2930397-2/fulltext)
+
+The following animation explains the `accept` model in 90 seconds:
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/UuGLN128Z3Y/0.jpg)](https://www.youtube.com/watch?v=UuGLN128Z3Y)
 
 ## Installation
 
@@ -43,11 +49,11 @@ samplePatients <- accept::samplePatients
 To get a prediction for exacerbation rate, you will need to pass in a patient vector:
 
 ```
-results <- predictACCEPT(samplePatients[1,])
+results <- accept2(samplePatients[1,]) #accept2 uses the updated prediction model
 print(t(results))
 ```
 
-The **predictACCEPT()** function returns a data frame with the original patient data, along with the predictions for different treatment options. 
+The **accept()** function returns a data frame with the original patient data, along with the predictions for different treatment options. 
 
 To visualize the data, there is a graphing function called **plotExacerbations()**, which creates a Plotly bar graph. You have the option of selecting **probability** or **rate** for which prediction you want to see, and either **CI** or **PI** to select the confidence interval or prediction interval respectively.
 
@@ -68,7 +74,7 @@ plotExacerbations(results, type="rate", interval = "CI")
 We can also calculate the predicted number of exacerbations in a year:
 
 ```
-patientResults = predictACCEPT(samplePatients[1,])
+patientResults = accept(samplePatients[1,]) #accept uses the original prediction model
 exacerbationsMatrix = predictCountProb(patientResults, n = 10, shortened = TRUE)
 print(exacerbationsMatrix)
 ```
@@ -88,7 +94,35 @@ plotHeatMap(patientResults, shortened = FALSE)
 
 ## Cloud-based API Access 
 
-The [PRISM platform](http://prism.resp.core.ubc.ca) allows users to access ACCEPT through the cloud. A MACRO-enabled Excel-file can be used to interact with the model and see the results. To download the PRISM Excel template file for ACCEPT, please refer to the [PRISM model repository](http://resp.core.ubc.ca/ipress/prism).
+The [Peer Models Network](https://www.peermodelsnetwork.com) allows users to access ACCEPT through the cloud. A MACRO-enabled Excel-file can be used to interact with the model and see the results. To download the PRISM Excel template file for ACCEPT, please refer to the [Peer Models Network model repository](https://models.peermodelsnetwork.com).
+
+#### Python
+```
+import json
+import requests
+url = 'https://prism.peermodelsnetwork.com/route/accept/run'
+headers = {'x-prism-auth-user': YOUR_API_KEY}
+model_run = requests.post(url, headers=headers,
+json = {"func":["prism_model_run"],"model_input":[{"ID": "10001","male": 1,"age": 57,"smoker": 0,"oxygen": 0,"statin": 0,"LAMA": 1,"LABA": 1,"ICS": 1,"FEV1": 51,"BMI": 18,"SGRQ": 63,"LastYrExacCount": 2,"LastYrSevExacCount": 1,"randomized_azithromycin": 0,"randomized_statin": 0,"randomized_LAMA": 0,"randomized_LABA": 0,"randomized_ICS": 0, "random_sampling_N" : 100,  "calculate_CIs" : "TRUE"}]})
+print(model_run)
+results = json.loads(model_run.text)
+print(results)
+```
+
+#### Linux Bash
+
+In Ubuntu, you can call the API with `curl`:
+
+```
+curl \
+-X POST \
+-H "x-prism-auth-user: REPLACE_WITH_API_KEY" \
+-H "Content-Type: application/json" \
+-d '{"func":["prism_model_run"],"model_input":[{"ID": "10001","male": 1,"age": 57,"smoker": 0,"oxygen": 0,"statin": 0,"LAMA": 1,"LABA": 1,"ICS": 1,"FEV1": 51,"BMI": 18,"SGRQ": 63,"LastYrExacCount": 2,"LastYrSevExacCount": 1,"randomized_azithromycin": 0,"randomized_statin": 0,"randomized_LAMA": 0,"randomized_LABA": 0,"randomized_ICS": 0, "random_sampling_N" : 100, 
+"calculate_CIs" : "TRUE"}]}' \
+https://prism.peermodelsnetwork.com/route/accept/run
+```
+
 
 ## User Manual
 

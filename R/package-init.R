@@ -1,11 +1,7 @@
 #' @import dplyr
-#' @import plotly
-#' @import viridis
-#' @import extrafont
-#' @importFrom stats dpois quantile rpois
-#' @importFrom plotly plot_ly
-#' @importFrom stringr str_replace
-#' @importFrom grDevices colorRamp
+#' @importFrom stats dpois quantile rpois dbinom weighted.mean
+#' @importFrom reldist wtd.quantile
+#' @importFrom splines bs
 NULL
 
 #' Sample Patient Characteristics Inputs

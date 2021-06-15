@@ -1,281 +1,621 @@
-gamma	                    <- 0.9687
-b0	                      <- -0.00964
-b_male	                  <- -0.157
-b_age10	                  <- -0.01885
-b_nowsmk	                <- -0.2009
-b_oxygen	                <- 0.08781
-b_fev1pp100	              <- -0.4419
-b_sgrq10                  <- 0.103
-b_cardiovascular	        <- 0.09837
-b_randomized_azithromycin <- -0.1687
-b_LAMA	                  <- 0.1485
-b_LABA	                  <- 0.1216
-b_ICS	                    <- 0.2232
-b_randomized_LAMA	        <- 0.172
-b_randomized_LABA	        <- 0.1398
-b_randomized_ICS	        <- -0.2452
-b_randomized_statin	      <- -0.05617
-b_BMI10                   <- -0.1272
+binorm_pdf <- function(x, sigma) {
+  s1 <- sqrt(sigma[1, 1])
+  s2 <- sqrt(sigma[2, 2])
+  rho <- sigma[1, 2] / (s1 * s2)
+  Z <- x[1] ^ 2 / sigma[1, 1] - 2 * rho * x[1] * x[2] / (s1 * s2) + x[2] ^ 2 / sigma[2, 2]
+  densRes <- 1 / (2 * pi * s1 * s2 * sqrt(1 - rho ^ 2)) * exp(- Z / (2 * (1 - rho ^ 2)))
+  return(densRes)
+}
 
-c0	                      <- -3.973
-c_male	                  <- 0.3889
-c_age10	                  <- 0.1123
-c_nowsmk                  <- 0.4025
-c_oxygen                  <- 0.5558
-c_fev1pp100	              <- -1.1552
-c_sgrq10                  <- 0.205
-c_cardiovascular	        <- 0.3255
-c_randomized_azithromycin <- -0.1103
-c_LAMA	                  <- -0.1385
-c_LABA            	      <- 0.01246
-c_ICS	                    <- 0.3879
-c_randomized_LAMA	        <- 0.1074
-c_randomized_LABA	        <- -0.2253
-c_randomized_ICS	        <- -0.1211
-c_randomized_statin	      <- 0.109
-c_BMI10           	      <- -0.106
+Sp_Manual_Pred <- function(Predictor, CoefEst, knots, Boundary_knots) {
+  ns_obj <- ns(Predictor, knots = knots, Boundary.knots = Boundary_knots)
+  if (length(Predictor) == 1) BasisFuncs <- t(c(1, as.numeric(ns_obj)))
+  else BasisFuncs <- as.matrix(cbind(1, ns_obj), ncol = 4)
+  Preds <- BasisFuncs %*% matrix(CoefEst, ncol = 1)
+  return(Preds)
+}
 
-b_age <- b_age10/10
-b_SGRQ <- b_sgrq10/10
-b_BMI <- b_BMI10/10
-b_fev1 <- b_fev1pp100/100
+Sp_Manual_Vec <- function(data, CoefEst, knots, Boundary_knots) {
 
-c_age <- c_age10/10
-c_SGRQ <- c_sgrq10/10
-c_BMI <- c_BMI10/10
-c_fev1 <- c_fev1pp100/100
+  data$predicted_exac_rate <- max(0, Sp_Manual_Pred(data$predicted_exac_rate, CoefEst, knots, Boundary_knots))
+  data$predicted_exac_rate_lower_PI <- max(0, Sp_Manual_Pred(data$predicted_exac_rate_lower_PI, CoefEst, knots, Boundary_knots))
+  data$predicted_exac_rate_upper_PI <- max(0, Sp_Manual_Pred(data$predicted_exac_rate_upper_PI, CoefEst, knots, Boundary_knots))
+  data$predicted_severe_exac_rate <- max(0, Sp_Manual_Pred(data$predicted_severe_exac_rate, CoefEst, knots, Boundary_knots))
+  data$predicted_severe_exac_rate_lower_PI <- max(0, Sp_Manual_Pred(data$predicted_severe_exac_rate_lower_PI, CoefEst, knots, Boundary_knots))
+  data$predicted_severe_exac_rate_upper_PI <- max(0, Sp_Manual_Pred(data$predicted_severe_exac_rate_upper_PI, CoefEst, knots, Boundary_knots))
 
-v1 	<- 0.5968
-v2	<- 2.3847
-cov	<- 0.147
+  data$predicted_exac_probability <- 1 - exp(-data$predicted_exac_rate)
+  data$predicted_exac_probability_lower_PI <- 1 - exp(-data$predicted_exac_rate_lower_PI)
+  data$predicted_exac_probability_upper_PI <- 1 - exp(-data$predicted_exac_rate_upper_PI)
+  data$predicted_severe_exac_probability <- 1 - exp(-data$predicted_severe_exac_rate)
+  data$predicted_severe_exac_probability_lower_PI <- 1 - exp(-data$predicted_severe_exac_rate_lower_PI)
+  data$predicted_severe_exac_probability_upper_PI <- 1 - exp(-data$predicted_severe_exac_rate_upper_PI)
 
-covMat <- matrix(
-  c(v1, cov, cov, v2),
-  nrow = 2,
-  ncol = 2
-)
+  # For azithromycin
+  data$azithromycin_predicted_exac_rate <- max(0, Sp_Manual_Pred(data$azithromycin_predicted_exac_rate, CoefEst, knots, Boundary_knots))
+  data$azithromycin_predicted_exac_rate_lower_PI <- max(0, Sp_Manual_Pred(data$azithromycin_predicted_exac_rate_lower_PI, CoefEst, knots, Boundary_knots))
+  data$azithromycin_predicted_exac_rate_upper_PI <- max(0, Sp_Manual_Pred(data$azithromycin_predicted_exac_rate_upper_PI, CoefEst, knots, Boundary_knots))
+  data$azithromycin_predicted_severe_exac_rate <- max(0, Sp_Manual_Pred(data$azithromycin_predicted_severe_exac_rate, CoefEst, knots, Boundary_knots))
+  data$azithromycin_predicted_severe_exac_rate_lower_PI <- max(0, Sp_Manual_Pred(data$azithromycin_predicted_severe_exac_rate_lower_PI, CoefEst, knots, Boundary_knots))
+  data$azithromycin_predicted_severe_exac_rate_upper_PI <- max(0, Sp_Manual_Pred(data$azithromycin_predicted_severe_exac_rate_upper_PI, CoefEst, knots, Boundary_knots))
 
-# More accurate azithromycin therapy estimates from AJE paper (https://doi.org/10.1093/aje/kww085), Table 2
-b_randomized_azithromycin <- 	 log(1/1.30)
-c_randomized_azithromycin <- 	log(0.93)
+  data$azithromycin_predicted_exac_probability <- 1 - exp(-data$azithromycin_predicted_exac_rate)
+  data$azithromycin_predicted_exac_probability_lower_PI <- 1 - exp(-data$azithromycin_predicted_exac_rate_lower_PI)
+  data$azithromycin_predicted_exac_probability_upper_PI <- 1 - exp(-data$azithromycin_predicted_exac_rate_upper_PI)
+  data$azithromycin_predicted_severe_exac_probability <- 1 - exp(-data$azithromycin_predicted_severe_exac_rate)
+  data$azithromycin_predicted_severe_exac_probability_lower_PI <- 1 - exp(-data$azithromycin_predicted_severe_exac_rate_lower_PI)
+  data$azithromycin_predicted_severe_exac_probability_upper_PI <- 1 - exp(-data$azithromycin_predicted_severe_exac_rate_upper_PI)
+
+  return(data)
+}
 
 
-# predictACCEPT <- function (patientData, random_sampling_N = 1e4){
+# Predicts COPD exacerbation rate by severity level
+# @param patientData patient data matrix. Can have one or many patients in it
+# @param random_sampling_N number of random sampling. Default is 1000.
+# @param lastYrExacCol the column specifying last year all exacerbation count
+# @param lastYrSevExacCol the column specifying last year severe exacerbation count
+# @param calculate_CIs whether to calculate confidence interval of the mean
+# @param betas betas provided by the user.
+# @param KeepSGRQ default is TRUE. If set to false, the value of SGRQ beta will be forced to be 0. Can be used for models without SGRQ.
+# @param KeepMeds default is TRUE. If set to false, beta values for LAMA, LABA, and ICS will be forced to be 0.Can be used for models without medications.
+# @return patientData with prediction
+# @examples
+# betas <- list()
+# betas$gamma	                    <- 0.9687
+# betas$b0	                      <- -0.00964
+# betas$b_male	                  <- -0.157
+# betas$b_age10	                  <- -0.01885
+# betas$b_nowsmk	                <- -0.2009
+# betas$b_oxygen	                <- 0.08781
+# betas$b_fev1pp100	              <- -0.4419
+# betas$b_sgrq10                  <- 0.103
+# betas$b_cardiovascular	        <- 0.09837
+# betas$b_randomized_azithromycin <- -0.1687
+# betas$b_LAMA	                  <- 0.1485
+# betas$b_LABA	                  <- 0.1216
+# betas$b_ICS	                    <- 0.2232
+# betas$b_randomized_LAMA	        <- 0.172
+# betas$b_randomized_LABA	        <- 0.1398
+# betas$b_randomized_ICS	        <- -0.2452
+# betas$b_randomized_statin	      <- -0.05617
+# betas$b_BMI10                   <- -0.1272
 #
-#   # no treatment
-#   patientData <- patientData %>% mutate (randomized_azithromycin = 0)
-#   noAzithroResults <- estimateACCEPT(patientData, random_sampling_N)
 #
-#   # with daily azithromycin
-#   patientData <- patientData %>% mutate (randomized_azithromycin = 1)
-#   azithroResults <- estimateACCEPT(patientData, random_sampling_N) %>% select (ID, starts_with("predict")) %>% rename_at (vars(starts_with("predict")),
-#                                                                                   funs(str_replace(., "predict", "azithromycin_predict")))
+# betas$c0	                      <- -3.973
+# betas$c_male	                  <- 0.3889
+# betas$c_age10	                  <- 0.1123
+# betas$c_nowsmk                  <- 0.4025
+# betas$c_oxygen                  <- 0.5558
+# betas$c_fev1pp100	              <- -1.1552
+# betas$c_sgrq10                  <- 0.205
+# betas$c_cardiovascular	        <- 0.3255
+# betas$c_randomized_azithromycin <- -0.1103
+# betas$c_LAMA	                  <- -0.1385
+# betas$c_LABA            	      <- 0.01246
+# betas$c_ICS	                    <- 0.3879
+# betas$c_randomized_LAMA	        <- 0.1074
+# betas$c_randomized_LABA	        <- -0.2253
+# betas$c_randomized_ICS	        <- -0.1211
+# betas$c_randomized_statin	      <- 0.109
+# betas$c_BMI10           	      <- -0.106
 #
 #
-#   result <- left_join(noAzithroResults, azithroResults, by ='ID')
-#   return(result)
-# }
+# betas$v1 	<- 0.5968
+# betas$v2	<- 2.3847
+# betas$cov	<- 0.147
+#
+#
+# betas$b_randomized_azithromycin <- 	 log(1/1.30)
+# betas$c_randomized_azithromycin <- 	log(0.93)
+#
+# results <- acceptEngine(samplePatients, betas=betas)
+acceptEngine <- function (patientData, random_sampling_N = 1e2,lastYrExacCol="LastYrExacCount",
+                          lastYrSevExacCol="LastYrSevExacCount", betas = NULL, KeepSGRQ = TRUE, KeepMeds = TRUE){
+
+  gamma	                    <- betas$gamma
+  b0	                      <- betas$b0
+  b_male	                  <- betas$b_male
+  b_age10	                  <- betas$b_age10
+  b_nowsmk	                <- betas$b_nowsmk
+  b_oxygen	                <- betas$b_oxygen
+  b_fev1pp100	              <- betas$b_fev1pp100
+  b_sgrq10                  <- KeepSGRQ*betas$b_sgrq10
+  b_cardiovascular	        <- betas$b_cardiovascular
+  b_randomized_azithromycin <- betas$b_randomized_azithromycin
+  b_LAMA	                  <- KeepMeds*betas$b_LAMA
+  b_LABA	                  <- KeepMeds*betas$b_LABA
+  b_ICS	                    <- KeepMeds*betas$b_ICS
+  b_randomized_LAMA	        <- betas$b_randomized_LAMA
+  b_randomized_LABA	        <- betas$b_randomized_LABA
+  b_randomized_ICS	        <- betas$b_randomized_ICS
+  b_randomized_statin	      <- betas$b_randomized_statin
+  b_BMI10                   <- betas$b_BMI10
+  c0	                      <- betas$c0
+  c_male	                  <- betas$c_male
+  c_age10	                  <- betas$c_age10
+  c_nowsmk                  <- betas$c_nowsmk
+  c_oxygen                  <- betas$c_oxygen
+  c_fev1pp100	              <- betas$c_fev1pp100
+  c_sgrq10                  <- KeepSGRQ*betas$c_sgrq10
+  c_cardiovascular	        <- betas$c_cardiovascular
+  c_randomized_azithromycin <- betas$c_randomized_azithromycin
+  c_LAMA	                  <- KeepMeds*betas$c_LAMA
+  c_LABA            	      <- KeepMeds*betas$c_LABA
+  c_ICS	                    <- KeepMeds*betas$c_ICS
+  c_randomized_LAMA	        <- betas$c_randomized_LAMA
+  c_randomized_LABA	        <- betas$c_randomized_LABA
+  c_randomized_ICS	        <- betas$c_randomized_ICS
+  c_randomized_statin	      <- betas$c_randomized_statin
+  c_BMI10           	      <- betas$c_BMI10
+
+  v1                       	<- betas$v1
+  v2	                      <- betas$v2
+  cov                      	<- betas$cov
+
+  b_age <- b_age10/10
+  b_SGRQ <- b_sgrq10/10
+  b_BMI <- b_BMI10/10
+  b_fev1 <- b_fev1pp100/100
+
+  c_age <- c_age10/10
+  c_SGRQ <- c_sgrq10/10
+  c_BMI <- c_BMI10/10
+  c_fev1 <- c_fev1pp100/100
 
 
-#' Predicts COPD exacerbation rate by severity level
-#' @param patientData patient data matrix. Can have one or many patients in it
-#' @param random_sampling_N number of random sampling. Default is 1000.
-#' @param random_distribution_iteration default is 2*10^4
-#' @param calculate_CIs whether to calculate confidence interval of the mean
-#' @return patientData with prediction
-#' @examples
-#' results <- predictACCEPT(samplePatients, random_distribution_iteration = 5000)
-#' @export
-predictACCEPT <- function (patientData, random_sampling_N = 1e3,
-                           random_distribution_iteration = 2e4, calculate_CIs = TRUE){
+  covMat <- matrix(
+    c(v1, cov, cov, v2),
+    nrow = 2,
+    ncol = 2
+  )
 
-  predicted_exac_rate <- matrix(0, random_sampling_N, nrow(patientData))
-  #predicted_exac_count <- matrix(0, random_sampling_N, nrow(patientData))
-  predicted_severe_exac_count <- matrix(0, random_sampling_N, nrow(patientData))
-  predicted_exac_probability <- matrix(0, random_sampling_N, nrow(patientData))
-  predicted_severe_exac_rate <- matrix(0, random_sampling_N, nrow(patientData))
-  predicted_severe_exac_probability <- matrix(0, random_sampling_N, nrow(patientData))
+  # Add azithromycin indicator
+  patientData$azithromycin_ind <- 0
+  patientData_temp <- patientData
+  patientData_temp$azithromycin_ind <- 1
+  patientData <- rbind(patientData, patientData_temp)
+  rm(patientData_temp)
 
-  azithro_predicted_exac_rate <- matrix(0, random_sampling_N, nrow(patientData))
-  #azithro_predicted_exac_count <- matrix(0, random_sampling_N, nrow(patientData))
-  azithro_predicted_severe_exac_count <- matrix(0, random_sampling_N, nrow(patientData))
-  azithro_predicted_exac_probability <- matrix(0, random_sampling_N, nrow(patientData))
-  azithro_predicted_severe_exac_rate <- matrix(0, random_sampling_N, nrow(patientData))
-  azithro_predicted_severe_exac_probability <- matrix(0, random_sampling_N, nrow(patientData))
-
-  conditionalZ <- densityLastYrExac(patientData, random_distribution_iteration = random_distribution_iteration)
-
-  for (i in 1:(nrow(patientData)))
-
-  {
-    log_alpha <-   b0 +
-      b_male * patientData[i, "male"] +
-      b_age * patientData[i, "age"] +
-      b_nowsmk * patientData[i, "smoker"] +
-      b_oxygen * patientData[i, "oxygen"] +
-      b_fev1 * patientData[i, "FEV1"] +
-      b_SGRQ * patientData[i, "SGRQ"] +
-      b_cardiovascular * patientData[i, "statin"] +
-      b_LAMA * patientData[i, "LAMA"] +
-      b_LABA * patientData[i, "LABA"] +
-      b_ICS * patientData[i, "ICS"] +
-      b_BMI * patientData[i, "BMI"]
-
-    azithro_log_alpha <- log_alpha + b_randomized_azithromycin
-    weight = NULL
-    ID <- as.character(patientData[i, "ID"])
-    z <- sample_n(conditionalZ[[ID]], random_sampling_N, replace = TRUE, weight = weight)
-
-    # no treatment scenario results
-    alpha <- exp (as.numeric(log_alpha) + z[, "z1"])
-    lambda <- alpha ^ gamma
-    predicted_exac_rate[, i] <- lambda
-    predicted_exac_probability[, i] <- 1 - exp(-lambda)
-    #predicted_exac_count[, i] <-  as.numeric(lapply(lambda, rpois, n=1))
+  patientData <- patientData %>% mutate (log_alpha = b0 +
+                                           b_male                    * .data$male   +
+                                           b_age                     * .data$age    +
+                                           b_nowsmk                  * .data$smoker +
+                                           b_oxygen                  * .data$oxygen +
+                                           b_fev1                    * .data$FEV1   +
+                                           b_SGRQ                    * .data$SGRQ   +
+                                           b_cardiovascular          * .data$statin +
+                                           b_LAMA                    * .data$LAMA   +
+                                           b_LABA                    * .data$LABA   +
+                                           b_ICS                     * .data$ICS    +
+                                           b_BMI                     * .data$BMI    +
+                                           b_randomized_azithromycin * .data$azithromycin_ind)       %>%
+    mutate (c_lin = c0 +
+              c_male                    * .data$male   +
+              c_age                     * .data$age    +
+              c_nowsmk                  * .data$smoker +
+              c_oxygen                  * .data$oxygen +
+              c_fev1                    * .data$FEV1   +
+              c_SGRQ                    * .data$SGRQ   +
+              c_cardiovascular          * .data$statin +
+              c_LAMA                    * .data$LAMA   +
+              c_LABA                    * .data$LABA   +
+              c_ICS                     * .data$ICS    +
+              c_BMI                     * .data$BMI +
+              b_randomized_azithromycin * .data$azithromycin_ind)
 
 
-    patientData [i, "predicted_exac_probability"] <- mean(predicted_exac_probability[,i])
-    patientData [i, "predicted_exac_rate"] <- mean(predicted_exac_rate[,i])
+  RE_seq_1 = seq(from = -2 * covMat[1, 1], to = 2 * covMat[1, 1], length.out = random_sampling_N)
+  RE_seq_2 = seq(from = -2 * covMat[2, 2], to = 2 * covMat[2, 2], length.out = random_sampling_N)
+  RE_W_mat <- outer(X = RE_seq_1, Y = RE_seq_2, FUN = Vectorize(function(x, y) binorm_pdf(c(x, y), sigma = covMat)))
 
-    # azithromycin scenario results
-    azithro_alpha <- exp (as.numeric(azithro_log_alpha) + z[, "z1"])
-    azithro_lambda <- azithro_alpha ^ gamma
-    azithro_predicted_exac_rate[, i] <- azithro_lambda
-    azithro_predicted_exac_probability[, i] <- 1 - exp(-azithro_lambda)
-    #azithro_predicted_exac_count[, i] <-  as.numeric(lapply(azithro_lambda, rpois, n=1))
+  Lambda  <- (exp(as.matrix(patientData[, "log_alpha"], ncol = 1)) %*% matrix(exp(RE_seq_1), nrow = 1)) ^ gamma
+  ProbSev <- exp(as.matrix(patientData[ , "c_lin"], ncol = 1)) %*% matrix(exp(RE_seq_2), nrow = 1)
+  ProbSev <- ProbSev / (1 + ProbSev)
 
-    patientData [i, "azithromycin_predicted_exac_probability"] <-        mean(azithro_predicted_exac_probability[,i])
-    patientData [i, "azithromycin_predicted_exac_rate"] <-               mean    (azithro_predicted_exac_rate[,i])
+  Lambda_Sev <- lapply(c(1 : nrow(patientData)), function(x) matrix(Lambda[x, ], ncol = 1) %*% matrix(ProbSev[x, ], nrow = 1))
+  Lambda_non_Sev <- lapply(c(1 : nrow(patientData)), function(x) matrix(Lambda[x, ], ncol = 1) %*% matrix(1 - ProbSev[x, ], nrow = 1))
 
-    #severity
-    c_lin <-   c0 +
-      c_male * patientData[i, "male"] +
-      c_age * patientData[i, "age"] +
-      c_nowsmk * patientData[i, "smoker"] +
-      c_oxygen * patientData[i, "oxygen"] +
-      c_fev1 * patientData[i, "FEV1"] +
-      c_SGRQ * patientData[i, "SGRQ"] +
-      c_cardiovascular * patientData[i, "statin"] +
-      c_LAMA * patientData[i, "LAMA"] +
-      c_LABA * patientData[i, "LABA"] +
-      c_ICS * patientData[i, "ICS"] +
-      c_BMI * patientData[i, "BMI"]
+  Posterior_Sev_W <-
+    lapply(c(1 : nrow(patientData)), function(x) {
+      t(apply(Lambda_Sev[[x]], 1, function(y) dpois(x = as.numeric(patientData[x, lastYrSevExacCol]), lambda = y))) * RE_W_mat
+    })
 
-    azithro_c_lin <- c_lin + c_randomized_azithromycin
+  Posterior_non_Sev_W <-
+    lapply(c(1 : nrow(patientData)), function(x) {
+      t(apply(Lambda_non_Sev[[x]], 1, function(y) dpois(x = as.numeric(patientData[x, lastYrExacCol] - patientData[x , lastYrSevExacCol]), lambda = y))) * RE_W_mat
+    })
 
-    # severe no treatment
-    OR <- exp (as.numeric(c_lin) + z[, "z2"])
-    predicted_severe_exac_probability[, i] <- (OR/(1+OR))
-    predicted_severe_exac_rate[, i] <- predicted_exac_rate[, i] * predicted_severe_exac_probability[, i]
+  Posterior_all_W <-
+    lapply(c(1 : nrow(patientData)), function(x) {
+      t(apply(Lambda_non_Sev[[x]]+Lambda_Sev[[x]], 1, function(y) dpois(x = as.numeric(patientData[x, lastYrExacCol]), lambda = y))) * RE_W_mat
+    })
 
-    patientData [i, "predicted_severe_exac_probability"] <- mean(predicted_severe_exac_probability[,i])
-    patientData [i, "predicted_severe_exac_rate"] <- mean (predicted_severe_exac_rate[, i])
-
-    # severe  azithromycin treatment
-    azithro_OR <- exp (as.numeric(azithro_c_lin) + z[, "z2"])
-    azithro_predicted_severe_exac_probability[, i] <- (azithro_OR/(1+azithro_OR))
-    azithro_predicted_severe_exac_rate[, i] <- azithro_predicted_exac_rate[, i] * azithro_predicted_severe_exac_probability[, i]
-
-    patientData [i, "azithromycin_predicted_severe_exac_probability"]        <- mean    (azithro_predicted_severe_exac_probability[,i])
-    patientData [i, "azithromycin_predicted_severe_exac_rate"]               <- mean    (azithro_predicted_severe_exac_rate[, i])
-
-    # bootstrapping for PI
-
-    patientData [i, "predicted_exac_probability_lower_PI"]                      <- quantile(predicted_exac_probability[,i], 0.025)
-    patientData [i, "predicted_exac_probability_upper_PI"]                      <- quantile(predicted_exac_probability[,i], 0.975)
-
-    patientData [i, "predicted_exac_rate_lower_PI"]                             <- quantile(predicted_exac_rate[,i], 0.025)
-    patientData [i, "predicted_exac_rate_upper_PI"]                             <- quantile(predicted_exac_rate[,i], 0.975)
-
-    patientData [i, "azithromycin_predicted_exac_probability_lower_PI"]         <- quantile(azithro_predicted_exac_probability[,i], 0.025)
-    patientData [i, "azithromycin_predicted_exac_probability_upper_PI"]         <- quantile(azithro_predicted_exac_probability[,i], 0.975)
-
-    patientData [i, "azithromycin_predicted_exac_rate_lower_PI"]                <- quantile(azithro_predicted_exac_rate[,i], 0.025)
-    patientData [i, "azithromycin_predicted_exac_rate_upper_PI"]                <- quantile(azithro_predicted_exac_rate[,i], 0.975)
-
-    patientData [i, "predicted_severe_exac_probability_lower_PI"]               <- quantile(predicted_severe_exac_probability[,i], 0.025)
-    patientData [i, "predicted_severe_exac_probability_upper_PI"]               <- quantile(predicted_severe_exac_probability[,i], 0.975)
-
-    patientData [i, "predicted_severe_exac_rate_lower_PI"]                      <- quantile(predicted_severe_exac_rate[,i], 0.025)
-    patientData [i, "predicted_severe_exac_rate_upper_PI"]                      <- quantile(predicted_severe_exac_rate[,i], 0.975)
-
-    patientData [i, "azithromycin_predicted_severe_exac_probability_lower_PI"]  <- quantile(azithro_predicted_severe_exac_probability[,i], 0.025)
-    patientData [i, "azithromycin_predicted_severe_exac_probability_upper_PI"]  <- quantile(azithro_predicted_severe_exac_probability[,i], 0.975)
-
-    patientData [i, "azithromycin_predicted_severe_exac_rate_lower_PI"]         <- quantile(azithro_predicted_severe_exac_rate[,i], 0.025)
-    patientData [i, "azithromycin_predicted_severe_exac_rate_upper_PI"]         <- quantile(azithro_predicted_severe_exac_rate[,i], 0.975)
+  Rate_Sev_Adj <- sapply(c(1 : nrow(patientData)), function(x) weighted.mean(x = Lambda_Sev[[x]], w = Posterior_Sev_W[[x]]))
+  Rate_Sev_Adj_lower_PI <- sapply(c(1 : nrow(patientData)), function(x) reldist::wtd.quantile(x = as.vector(Lambda_Sev[[x]]), weight = Posterior_Sev_W[[x]], q = 0.025))
+  Rate_Sev_Adj_upper_PI <- sapply(c(1 : nrow(patientData)), function(x) reldist::wtd.quantile(x = as.vector(Lambda_Sev[[x]]), weight = Posterior_Sev_W[[x]], q = 0.975))
 
 
-    # bootstrapping for CI
-    if (calculate_CIs) {
-      bootProb <- numeric(random_sampling_N)
-      bootRate <- numeric(random_sampling_N)
+  Rate_non_Sev_Adj <- sapply(c(1 : nrow(patientData)), function(x) weighted.mean(x = Lambda_non_Sev[[x]], w = Posterior_non_Sev_W[[x]]))
+  Rate_non_Sev_Adj_lower_PI <- sapply(c(1 : nrow(patientData)), function(x) reldist::wtd.quantile(x = as.vector(Lambda_non_Sev[[x]]), weight = Posterior_non_Sev_W[[x]], q = 0.025))
+  Rate_non_Sev_Adj_upper_PI <- sapply(c(1 : nrow(patientData)), function(x) reldist::wtd.quantile(x = as.vector(Lambda_non_Sev[[x]]), weight = Posterior_non_Sev_W[[x]], q = 0.975))
 
-      azithro_bootProb <- numeric(random_sampling_N)
-      azithro_bootRate <- numeric(random_sampling_N)
 
-      severe_bootProb <- numeric(random_sampling_N)
-      severe_bootRate <- numeric(random_sampling_N)
+  Rate_Sev_SD_Adj <- sqrt(Rate_Sev_Adj + Rate_Sev_Adj ^ 2 * (exp(0.97 * covMat[1, 1]) - 1))
+  Rate_non_Sev_SD_Adj <- sqrt(Rate_non_Sev_Adj + Rate_non_Sev_Adj ^ 2 * (exp(0.97 * covMat[1, 1]) - 1))
 
-      azithro_severe_bootProb <- numeric(random_sampling_N)
-      azithro_severe_bootRate <- numeric(random_sampling_N)
+  Rate_Adj <- Rate_Sev_Adj + Rate_non_Sev_Adj
+  Rate_Adj_lower_PI <- sapply(c(1 : nrow(patientData)), function(x) reldist::wtd.quantile(x = as.vector(Lambda_non_Sev[[x]]+Lambda_Sev[[x]]), weight = Posterior_all_W[[x]], q = 0.025))
+  Rate_Adj_upper_PI <- sapply(c(1 : nrow(patientData)), function(x) reldist::wtd.quantile(x = as.vector(Lambda_non_Sev[[x]]+Lambda_Sev[[x]]), weight = Posterior_all_W[[x]], q = 0.975))
 
-      for (j in 1:random_sampling_N) {
 
-        bootProb [j] <- mean(sample(predicted_exac_probability[,i], replace = TRUE))
-        bootRate [j] <- mean(sample(predicted_exac_rate[,i], replace = TRUE))
+  Rate_SD_Adj <- sqrt(Rate_Adj + Rate_Adj ^ 2 * (exp(0.97 * covMat[1, 1]) - 1))
 
-        azithro_bootProb [j] <- mean(sample(azithro_predicted_exac_probability[,i], replace = TRUE))
-        azithro_bootRate [j] <- mean(sample(azithro_predicted_exac_rate[,i], replace = TRUE))
+  risk_at_least_one_exac <- 1 - exp(-Rate_Adj)
+  risk_at_least_one_exac_lower_PI <- 1 - exp(-Rate_Adj_lower_PI)
+  risk_at_least_one_exac_upper_PI <- 1 - exp(-Rate_Adj_upper_PI)
 
-        severe_bootProb [j] <- mean(sample(predicted_severe_exac_probability[,i], replace = TRUE))
-        severe_bootRate [j] <- mean(sample(predicted_severe_exac_rate[,i], replace = TRUE))
+  risk_at_least_one_Sev_exac <- 1 - exp(-Rate_Sev_Adj)
+  risk_at_least_one_Sev_exac_lower_PI <- 1 - exp(-Rate_Sev_Adj_lower_PI)
+  risk_at_least_one_Sev_exac_upper_PI <- 1 - exp(-Rate_Sev_Adj_upper_PI)
 
-        azithro_severe_bootProb [j] <- mean(sample(azithro_predicted_severe_exac_probability[,i], replace = TRUE))
-        azithro_severe_bootRate [j] <- mean(sample(azithro_predicted_severe_exac_rate[, i], replace = TRUE))
-      }
 
-      patientData [i, "predicted_exac_probability_lower_CI"]                      <- quantile(bootProb, 0.025)
-      patientData [i, "predicted_exac_probability_upper_CI"]                      <- quantile(bootProb, 0.975)
+  patientData <- patientData %>%
+    select(-.data$log_alpha, -.data$c_lin) %>%
+    mutate(predicted_exac_probability                 = risk_at_least_one_exac,
+           predicted_exac_probability_lower_PI        = risk_at_least_one_exac_lower_PI,
+           predicted_exac_probability_upper_PI        = risk_at_least_one_exac_upper_PI,
+           # predicted_exac_probability_lower_CI        = risk_at_least_one_exac_lower_CI,
+           # predicted_exac_probability_upper_CI        = risk_at_least_one_exac_upper_CI,
 
-      patientData [i, "predicted_exac_rate_lower_CI"]                             <- quantile(bootRate, 0.025)
-      patientData [i, "predicted_exac_rate_upper_CI"]                             <- quantile(bootRate, 0.975)
+           predicted_exac_rate                        = Rate_Adj,
+           predicted_exac_rate_lower_PI               = Rate_Adj_lower_PI,
+           predicted_exac_rate_upper_PI               = Rate_Adj_upper_PI,
+           # predicted_exac_rate_lower_CI               = Rate_Adj_lower_CI,
+           # predicted_exac_rate_upper_CI               = Rate_Adj_upper_CI,
 
-      patientData [i, "azithromycin_predicted_exac_probability_lower_CI"]         <- quantile(azithro_bootProb, 0.025)
-      patientData [i, "azithromycin_predicted_exac_probability_upper_CI"]         <- quantile(azithro_bootProb, 0.975)
+           predicted_severe_exac_probability          = risk_at_least_one_Sev_exac,
+           predicted_severe_exac_probability_lower_PI = risk_at_least_one_Sev_exac_lower_PI,
+           predicted_severe_exac_probability_upper_PI = risk_at_least_one_Sev_exac_upper_PI,
+           # predicted_severe_exac_probability_lower_CI = risk_at_least_one_Sev_exac_lower_CI,
+           # predicted_severe_exac_probability_upper_CI = risk_at_least_one_Sev_exac_upper_CI,
 
-      patientData [i, "azithromycin_predicted_exac_rate_lower_CI"]                <- quantile(azithro_bootRate, 0.025)
-      patientData [i, "azithromycin_predicted_exac_rate_upper_CI"]                <- quantile(azithro_bootRate, 0.975)
+           predicted_severe_exac_rate                 = Rate_Sev_Adj,
+           predicted_severe_exac_rate_lower_PI        = Rate_Sev_Adj_lower_PI,
+           predicted_severe_exac_rate_upper_PI        = Rate_Sev_Adj_upper_PI
+           # predicted_severe_exac_rate_lower_CI        = Rate_Sev_Adj_lower_CI,
+           # predicted_severe_exac_rate_upper_CI        = Rate_Sev_Adj_upper_CI,
+    )
 
-      patientData [i, "predicted_severe_exac_probability_lower_CI"]               <- quantile(severe_bootProb, 0.025)
-      patientData [i, "predicted_severe_exac_probability_upper_CI"]               <- quantile(severe_bootProb, 0.975)
+  patientData <-
+    reshape(as.data.frame(patientData),
+            timevar = "azithromycin_ind", idvar = "ID", direction = "wide",
+            v.names = c("predicted_exac_probability", "predicted_exac_probability_lower_PI",
+                        "predicted_exac_probability_upper_PI", "predicted_exac_rate",
+                        "predicted_exac_rate_lower_PI", "predicted_exac_rate_upper_PI",
+                        "predicted_severe_exac_probability", "predicted_severe_exac_probability_lower_PI",
+                        "predicted_severe_exac_probability_upper_PI", "predicted_severe_exac_rate",
+                        "predicted_severe_exac_rate_lower_PI", "predicted_severe_exac_rate_upper_PI"))
 
-      patientData [i, "predicted_severe_exac_rate_lower_CI"]                      <- quantile(severe_bootRate, 0.025)
-      patientData [i, "predicted_severe_exac_rate_upper_CI"]                      <- quantile(severe_bootRate, 0.975)
-
-      patientData [i, "azithromycin_predicted_severe_exac_probability_lower_CI"]  <- quantile(azithro_severe_bootProb, 0.025)
-      patientData [i, "azithromycin_predicted_severe_exac_probability_upper_CI"]  <- quantile(azithro_severe_bootProb, 0.975)
-
-      patientData [i, "azithromycin_predicted_severe_exac_rate_lower_CI"]         <- quantile(azithro_severe_bootRate, 0.025)
-      patientData [i, "azithromycin_predicted_severe_exac_rate_upper_CI"]         <- quantile(azithro_severe_bootRate, 0.975)
-    }
-
-  }
+  colnames(patientData)[grep(".0", colnames(patientData), fixed = T)] <-
+    unlist(strsplit(colnames(patientData)[grep(".0", colnames(patientData), fixed = T)], ".0"))
+  colnames(patientData)[grep(".1", colnames(patientData), fixed = T)] <-
+    paste0("azithromycin_",
+           unlist(strsplit(colnames(patientData)[grep(".1", colnames(patientData), fixed = T)], ".1")))
 
   return(patientData)
 
 }
 
 
+
+#' Predicts COPD exacerbation rate by severity level based on Acute COPD Exacerbation Tool (ACCEPT)
+#' @param patientData patient data matrix. Can have one or many patients in it
+#' @param random_sampling_N number of random sampling. Default is 100.
+#' @param lastYrExacCol the column specifying last year all exacerbation count
+#' @param lastYrSevExacCol the column specifying last year severe exacerbation count
+#' @param ... for backward compatibility
+#' @return patientData with prediction
+#' @examples
+#' results <- accept(samplePatients)
+#' @export
+accept <- function (patientData, random_sampling_N = 1e2, lastYrExacCol="LastYrExacCount",
+                           lastYrSevExacCol="LastYrSevExacCount", ...){
+
+  betas <- list()
+  betas$gamma	                    <- 0.9706
+  betas$b0	                      <- -0.2014
+  betas$b_male	                  <- -0.1855
+  betas$b_age10	                  <- -0.00823
+  betas$b_nowsmk	                <- -0.1867
+  betas$b_oxygen	                <- 0.1209
+  betas$b_fev1pp100	              <- -0.5584
+  betas$b_sgrq10                  <- 0.1064
+  betas$b_cardiovascular	        <- 0.1359
+  betas$b_randomized_azithromycin <- -0.1287
+  betas$b_LAMA	                  <- 0.1678
+  betas$b_LABA	                  <- 0.1137
+  betas$b_ICS	                    <- 0.279
+  betas$b_randomized_LAMA	        <- 0.2202
+  betas$b_randomized_LABA	        <- 0.1321
+  betas$b_randomized_ICS	        <- -0.2359
+  betas$b_randomized_statin	      <- -0.1573
+  betas$b_BMI10                   <- -0.1333
+
+  betas$c0	                      <- -3.6901
+  betas$c_male	                  <- 0.4255
+  betas$c_age10	                  <- 0.09545
+  betas$c_nowsmk                  <- 0.4211
+  betas$c_oxygen                  <- 0.546
+  betas$c_fev1pp100	              <- -0.8095
+  betas$c_sgrq10                  <- 0.1781
+  betas$c_cardiovascular	        <- 0.2326
+  betas$c_randomized_azithromycin <- -0.1305
+  betas$c_LAMA	                  <- -0.1638
+  betas$c_LABA            	      <- 0.05466
+  betas$c_ICS	                    <- 0.2677
+  betas$c_randomized_LAMA	        <- 0.2193
+  betas$c_randomized_LABA	        <- -0.4085
+  betas$c_randomized_ICS	        <- -0.1755
+  betas$c_randomized_statin	      <- 0.2169
+  betas$c_BMI10           	      <- -0.09666
+
+  betas$v1 	<- 0.6855
+  betas$v2	<- 2.2494
+  betas$cov	<- 0.08772
+
+  # More accurate azithromycin therapy estimates from AJE paper (https://doi.org/10.1093/aje/kww085), Table 2
+  betas$b_randomized_azithromycin <- 	 log(1/1.30)
+  betas$c_randomized_azithromycin <- 	 log(0.93)
+
+  results <- acceptEngine(patientData = patientData, betas = betas)
+
+  return(results)
+}
+
+
+#' Predicts COPD exacerbation rate by severity level based on the updated accept2 model, which improves accuracy in patients without an exacerbation history.
+#' @param patientData patient data matrix. Can have one or many patients in it
+#' @param random_sampling_N number of random sampling. Default is 100.
+#' @param lastYrExacCol the column specifying last year all exacerbation count
+#' @param lastYrSevExacCol the column specifying last year severe exacerbation count
+#' @param KeepSGRQ default is TRUE. If set to false, the reduced model without SGRQ will be used.
+#' @param KeepMeds default is TRUE. If set to false, the reduced model without medication predictors will be used.
+#' @param ... for backward compatibility
+#' @return patientData with prediction
+#'
+#' @importFrom splines ns
+#' @importFrom stats reshape
+#'
+#' @examples
+#' results <- accept2(samplePatients)
+#' @export
+accept2 <- function (patientData, random_sampling_N = 1e2, lastYrExacCol="LastYrExacCount",
+                    lastYrSevExacCol="LastYrSevExacCount", KeepSGRQ = TRUE, KeepMeds = TRUE, ...){
+
+  betas <- list()
+
+  if (KeepSGRQ & KeepMeds){
+    # model coefficients
+    betas$gamma	                    <- 0.9706
+    betas$b0	                      <- -0.2014
+    betas$b_male	                  <- -0.1855
+    betas$b_age10	                  <- -0.00823
+    betas$b_nowsmk	                <- -0.1867
+    betas$b_oxygen	                <- 0.1209
+    betas$b_fev1pp100	              <- -0.5584
+    betas$b_sgrq10                  <- 0.1064
+    betas$b_cardiovascular	        <- 0.1359
+    betas$b_randomized_azithromycin <- -0.1287
+    betas$b_LAMA	                  <- 0.1678
+    betas$b_LABA	                  <- 0.1137
+    betas$b_ICS	                    <- 0.279
+    betas$b_randomized_LAMA	        <- 0.2202
+    betas$b_randomized_LABA	        <- 0.1321
+    betas$b_randomized_ICS	        <- -0.2359
+    betas$b_randomized_statin	      <- -0.1573
+    betas$b_BMI10                   <- -0.1333
+
+    betas$c0	                      <- -3.6901
+    betas$c_male	                  <- 0.4255
+    betas$c_age10	                  <- 0.09545
+    betas$c_nowsmk                  <- 0.4211
+    betas$c_oxygen                  <- 0.546
+    betas$c_fev1pp100	              <- -0.8095
+    betas$c_sgrq10                  <- 0.1781
+    betas$c_cardiovascular	        <- 0.2326
+    betas$c_randomized_azithromycin <- -0.1305
+    betas$c_LAMA	                  <- -0.1638
+    betas$c_LABA            	      <- 0.05466
+    betas$c_ICS	                    <- 0.2677
+    betas$c_randomized_LAMA	        <- 0.2193
+    betas$c_randomized_LABA	        <- -0.4085
+    betas$c_randomized_ICS	        <- -0.1755
+    betas$c_randomized_statin	      <- 0.2169
+    betas$c_BMI10           	      <- -0.09666
+
+    betas$v1 	<- 0.6855
+    betas$v2	<- 2.2494
+    betas$cov	<- 0.08772
+
+    # Spline coefficients: Rates
+    rate_knots = c(0.7145958, 0.9912697, 1.4652412)
+    rate_boundary_knots = c(0.329367, 4.068048)
+    sev_knots = c(0.1104125, 0.1553361, 0.2440743)
+    sev_boundary_knots = c(0.02618769, 1.72861911)
+
+    rate_coeff <- c(0.06518199, 0.90307795, 2.31804966, 4.23148175, 5.03274433)
+    sev_coeff <- c(0.05010488, 0.10449992, 0.82837734, 1.76211800, 2.45999937)
+
+  } else if (!KeepMeds & KeepSGRQ)
+  {
+    message ("Warning: You are using a simplified version of the model that does not include medications. See the manuscript for more details.")
+    # model coefficients
+    betas$gamma	                    <- 0.9707
+    betas$b0	                      <- 0.1371
+    betas$b_male	                  <- -0.1841
+    betas$b_age10	                  <- -0.00501
+    betas$b_nowsmk	                <- -0.2136
+    betas$b_oxygen	                <- 0.1381
+    betas$b_fev1pp100	              <- -0.6955
+    betas$b_sgrq10                  <- 0.1111
+    betas$b_cardiovascular	        <- 0.1835
+    betas$b_randomized_azithromycin <- -0.06597
+    betas$b_randomized_LAMA	        <- 0.2385
+    betas$b_randomized_LABA	        <- 0.1318
+    betas$b_randomized_ICS	        <- -0.2669
+    betas$b_randomized_statin	      <- -0.2646
+    betas$b_BMI10                   <- -0.1352
+
+    betas$c0	                      <- -3.6522
+    betas$c_male	                  <- 0.4285
+    betas$c_age10	                  <- 0.09704
+    betas$c_nowsmk                  <- 0.4338
+    betas$c_oxygen                  <- 0.539
+    betas$c_fev1pp100	              <- -0.7998
+    betas$c_sgrq10                  <- 0.1778
+    betas$c_cardiovascular	        <- 0.2554
+    betas$c_randomized_azithromycin <- -0.09003
+    betas$c_randomized_LAMA	        <- 0.2093
+    betas$c_randomized_LABA	        <- -0.4087
+    betas$c_randomized_ICS	        <- -0.1739
+    betas$c_randomized_statin	      <- 0.08586
+    betas$c_BMI10           	      <- -0.08287
+
+    betas$v1 	<- 0.7083
+    betas$v2	<- 2.2753
+    betas$cov	<- 0.09212
+
+    # Spline coefficients: Rates
+    rate_knots = c(0.1018911, 0.1420318, 0.2163109)
+    rate_boundary_knots = c(0.03407203, 1.56146110)
+    sev_knots = c(0.6866579, 0.9167824, 1.3328795)
+    sev_boundary_knots = c(0.3993395, 3.7012484)
+
+    rate_coeff <- c(0.1197930, 0.9126978, 2.2951754, 4.0110488, 4.9058539)
+    sev_coeff <- c(0.05871868, 0.10250238, 0.82620839, 1.68624119, 2.38272234)
+
+
+  } else if (KeepMeds & !KeepSGRQ)
+  {
+    message ("Warning: You are using a simplified version of the model that does not include St. George Respiratory Questionnaire. See the manuscript for more details.")
+    # model coefficients
+    betas$gamma	                    <- 0.97
+    betas$b0	                      <- 0.5072
+    betas$b_male	                  <- -0.1791
+    betas$b_age10	                  <- -0.040983
+    betas$b_nowsmk	                <- -0.1353
+    betas$b_oxygen	                <- 0.1561
+    betas$b_fev1pp100	              <- -0.7846
+    betas$b_cardiovascular	        <- 0.1642
+    betas$b_randomized_azithromycin <- -0.1259
+    betas$b_LAMA	                  <- 0.1808
+    betas$b_LABA	                  <- 0.0933
+    betas$b_ICS	                    <- 0.3052
+    betas$b_randomized_LAMA	        <- 0.2451
+    betas$b_randomized_LABA	        <- 0.1034
+    betas$b_randomized_ICS	        <- -0.2339
+    betas$b_randomized_statin	      <- -0.1575
+    betas$b_BMI10                   <- -0.1088
+
+    betas$c0	                      <- -2.4146
+    betas$c_male	                  <- 0.4525
+    betas$c_age10	                  <- 0.03839
+    betas$c_nowsmk                  <- 0.51
+    betas$c_oxygen                  <- 0.6046
+    betas$c_fev1pp100	              <- -1.2895
+    betas$c_cardiovascular	        <- 0.2882
+    betas$c_randomized_azithromycin <- -0.1343
+    betas$c_LAMA	                  <- -0.1531
+    betas$c_LABA            	      <- 0.01885
+    betas$c_ICS	                    <- 0.3003
+    betas$c_randomized_LAMA	        <- 0.2378
+    betas$c_randomized_LABA	        <- -0.4569
+    betas$c_randomized_ICS	        <- -0.171
+    betas$c_randomized_statin	      <- 0.1928
+    betas$c_BMI10           	      <- -0.06825
+
+    betas$v1 	<- 0.7161
+    betas$v2	<- 2.3299
+    betas$cov	<- 0.1465
+
+    # Spline coefficients: Rates
+    rate_knots = c(0.7456274, 0.9866093, 1.4210972)
+    rate_boundary_knots = c(0.4203808, 3.7239562)
+    sev_knots = c(0.1137685, 0.1493893, 0.2106265)
+    sev_boundary_knots = c(0.04448195, 1.56042213)
+
+    rate_coeff <- c(0.1650515, 0.8529724, 2.0886867, 3.9422245, 4.9643087)
+    sev_coeff <- c(0.05590748, 0.09148651, 0.86588143, 1.69546615, 2.33351171)
+
+  } else if (!KeepMeds & !KeepSGRQ)
+  {
+    message ("Warning: You are using a simplified version of the model that does includes neither medications nor St. George Respiratory Questionnaire. See the manuscript for more details.")
+    # model coefficients
+    betas$gamma	                    <- 0.9701
+    betas$b0	                      <- 0.8911
+    betas$b_male	                  <- -0.1791
+    betas$b_age10	                  <- -0.0397
+    betas$b_nowsmk	                <- -0.1616
+    betas$b_oxygen	                <- 0.1777
+    betas$b_fev1pp100	              <- -0.9282
+    betas$b_cardiovascular	        <- 0.216
+    betas$b_randomized_azithromycin <- -0.05931
+    betas$b_randomized_LAMA	        <- 0.2871
+    betas$b_randomized_LABA	        <- 0.09825
+    betas$b_randomized_ICS	        <- -0.2612
+    betas$b_randomized_statin	      <- -0.2646
+    betas$b_BMI10                   <- -0.1112
+
+    betas$c0	                      <- -2.3819
+    betas$c_male	                  <- 0.45
+    betas$c_age10	                  <- 0.0423
+    betas$c_nowsmk                  <- 0.5255
+    betas$c_oxygen                  <- 0.6051
+    betas$c_fev1pp100	              <- -1.3091
+    betas$c_cardiovascular	        <- 0.3234
+    betas$c_randomized_azithromycin <- -0.08298
+    betas$c_randomized_LAMA	        <- 0.2853
+    betas$c_randomized_LABA	        <- -0.475
+    betas$c_randomized_ICS	        <- -0.1957
+    betas$c_randomized_statin	      <- 0.07671
+    betas$c_BMI10           	      <- -0.06022
+
+    betas$v1 	<- 0.7424
+    betas$v2	<- 2.3784
+    betas$cov	<- 0.1564
+
+    # Spline coefficients: Rates
+    rate_knots = c(0.7028951, 0.9131159, 1.3158333)
+    rate_boundary_knots = c(0.4924904, 3.3967642)
+    sev_knots = c(0.1020546, 0.1304339, 0.1826366)
+    sev_boundary_knots = c(0.05212108, 1.39483400)
+
+    rate_coeff <- c(0.1513950, 0.9446998, 2.2107619, 3.9384999, 4.8656656)
+    sev_coeff <- c(0.05768919, 0.12920786, 0.63391906, 1.49899418, 2.24064269)
+
+  }
+  # More accurate azithromycin therapy estimates from AJE paper (https://doi.org/10.1093/aje/kww085), Table 2
+  betas$b_randomized_azithromycin <- 	 log(1/1.30)
+  betas$c_randomized_azithromycin <- 	 log(0.93)
+
+  results_before_adj <- acceptEngine(patientData = patientData, betas = betas, KeepMeds = KeepMeds, KeepSGRQ = KeepSGRQ)
+
+  results_after_adj <- Sp_Manual_Vec(results_before_adj, rate_coeff, rate_knots, rate_boundary_knots)
+
+  return(results_after_adj)
+}
+
+
+
 #' Predicts probability of observing n exacerbations in the next year
-#' @param patientResults patient results vector, produced by predictAccept.
+#' @param patientResults patient results vector, produced by accept.
 #' @param n how many exacerbations
 #' @param shortened boolean: Shortened results groups into 0, 1, 2, and 3 or more exacerbations
 #' @return a matrix of probabilities with the number of exacerbations as rows and number of severe exacerbations as columns
 #' @examples
-#' results <- predictACCEPT(samplePatients[1,], random_distribution_iteration = 5000)
+#' results <- accept(samplePatients[1,])
 #' predictCountProb (results)
-#' @import plotly
 #' @export
 predictCountProb <- function (patientResults, n = 10, shortened = TRUE){
   results <- matrix (0, nrow = n, ncol = n)
@@ -290,9 +630,10 @@ predictCountProb <- function (patientResults, n = 10, shortened = TRUE){
    for (j in 1:n) {
       if (i>=j) {
        results [i, j] <- dpois(i-1, patientResults$predicted_exac_rate) *
-                         factorial(i-1) / (factorial(j-1) * factorial (i-j))  *
-                         patientResults$predicted_severe_exac_probability ^ (j-1) *
-                         (1 - patientResults$predicted_severe_exac_probability) ^ (i-j)
+                         dbinom(x= j-1, size = (i-1), prob = patientResults$predicted_severe_exac_probability)
+                         # factorial(i-1) / (factorial(j-1) * factorial (i-j))  *
+                         # patientResults$predicted_severe_exac_probability ^ (j-1) *
+                         # (1 - patientResults$predicted_severe_exac_probability) ^ (i-j)
        }}
  }
  if (shortened) {
@@ -307,3 +648,5 @@ predictCountProb <- function (patientResults, n = 10, shortened = TRUE){
  }
  return(results)
 }
+
+

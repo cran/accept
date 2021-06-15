@@ -1,29 +1,34 @@
 #' Creates heatmap of number of exacerbations
-#' @param patientResults patient results vector, produced by predictAccept.
+#' @param patientResults patient results vector, produced by accept.
 #' @param n how many exacerbations to consider
 #' @param shortened boolean
 #' @return a heatmap
 #' @examples
-#' results <- predictACCEPT(samplePatients[1,], random_distribution_iteration = 5000)
+#' results <- accept(samplePatients[1,])
 #' plotHeatMap(results)
 #' @export
 
-plotHeatMap = function(patientResults, n = 10, shortened = TRUE) {
+plotHeatMap <- function(patientResults, n = 10, shortened = TRUE) {
 
-  results = predictCountProb(patientResults, n=n, shortened = shortened)
+  if (!requireNamespace("plotly", quietly = TRUE)) {
+    stop("Package \"plotly\" needed for this function to work. Please install it.",
+         call. = FALSE)
+  }
+
+  results <- predictCountProb(patientResults, n=n, shortened = shortened)
   heatPlotly <- t(results)
 
-  plot_ly(x = colnames(heatPlotly),
+  plotly::plot_ly(x = colnames(heatPlotly),
           y = rownames(heatPlotly),
           z = heatPlotly, type = "heatmap")  %>%
-    layout(
+    plotly::layout(
       title = "Predicted Probability of Experiencing Certain Number of Exacerbations",
       yaxis = list(title = "Number of Severe Exacerbations"),
       xaxis = list(title = "Number of All Exacerbations")
     )
 }
 #' Creates bar graph comparing no treatment with azithromycin treatment
-#' @param patientResults patient results vector, produced by predictAccept.
+#' @param patientResults patient results vector, produced by accept.
 #' @param type string: either "probability" or "rate"
 #' @param interval string: either "CI" or "PI"
 #' PI = Predicted Interval
@@ -33,11 +38,16 @@ plotHeatMap = function(patientResults, n = 10, shortened = TRUE) {
 #' can use hexadecimal, rgb, or R color codes
 #' @return a bar graph
 #' @examples
-#' results <- predictACCEPT(samplePatients[1,], random_distribution_iteration = 5000)
+#' results <- accept(samplePatients[1,])
 #' plotExacerbations(results)
 #' @export
-plotExacerbations = function(patientResults, type="rate", interval = "CI",
+plotExacerbations <- function(patientResults, type="rate", interval = "PI",
                              colors = c("#007bff", 'rgb(204,204,204)')) {
+
+  if (!requireNamespace("plotly", quietly = TRUE)) {
+    stop("Package \"plotly\" needed for this function to work. Please install it.",
+         call. = FALSE)
+  }
 
   base_strings = c("predicted_exac_",
     "predicted_severe_exac_")
@@ -74,7 +84,7 @@ plotExacerbations = function(patientResults, type="rate", interval = "CI",
   } else if (type == "probability") {
     yAxisTitle = "Probability of an Exacerbation in Next Year"
   }
-  p <- plot_ly(data, x = ~x, y = ~y1, type = 'bar',
+  p <- plotly::plot_ly(data, x = ~x, y = ~y1, type = 'bar',
                name = 'No Treatment',
                marker = list(color = colors[1]),
                error_y = list(
@@ -86,7 +96,7 @@ plotExacerbations = function(patientResults, type="rate", interval = "CI",
                  array= error_y1[c(2,4)],
                  arrayminus = error_y1[c(1,3)]
                )) %>%
-    add_trace(y = ~y2,
+    plotly::add_trace(y = ~y2,
               name = 'Azithromycin Treatment',
               marker = list(color = colors[2]),
               error_y = list(
@@ -98,7 +108,7 @@ plotExacerbations = function(patientResults, type="rate", interval = "CI",
                 array= error_y2[c(2,4)],
                 arrayminus = error_y2[c(1,3)]
               )) %>%
-    layout(xaxis = list(title = "Exacerbation Type",
+    plotly::layout(xaxis = list(title = "Exacerbation Type",
                         tickangle = -45),
            yaxis = list(title = yAxisTitle),
            margin = list(b = 100),
