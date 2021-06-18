@@ -1,10 +1,10 @@
-e18fdddd7af4079522f033da4372dbb4 *DESCRIPTION
+f0c8952acc4fca94a476635d061bfdf1 *DESCRIPTION
 6c51b49a29cf6a6462eb6d01f30852d5 *NAMESPACE
-19c2fbc6772938414123cc30c1a92ebb *NEWS.md
+96f26f619d032a33ab1db2aa8d930f72 *NEWS.md
 495eb68bc1b909b71ee997c6c9cca8a6 *R/CI_test.R
 fcfdb2a0d67e40e7a9c85058123b02ea *R/charts.R
 9e613ae21f4dacbaee0f57986cfa4eb0 *R/package-init.R
-d1d24575d749d201b1ba45b74d9fe0db *R/predict.R
+fefad2629b7ac9df42d415dd28e6f459 *R/predict.R
 1c982a973d5d7e0e44ba709c44eab8d3 *README.md
 1e8903daa421bab52ac99050343a85c3 *data/samplePatients.rda
 14b403f023ff8731f122b7d4f901d370 *man/accept.Rd
