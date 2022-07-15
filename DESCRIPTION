@@ -1,6 +1,6 @@
 Package: accept
 Title: The Acute COPD Exacerbation Prediction Tool (ACCEPT)
-Version: 0.9.0
+Version: 0.9.1
 Authors@R: c(
     person("Amin", "Adibi", email = "adibi@alumni.ubc.ca", role = c("aut", "cre")),
     person("Mohsen", "Sadatsafavi", email = "mohsen.sadatsafavi@ubc.ca", role = c("aut", "cph")),
@@ -13,13 +13,13 @@ Encoding: UTF-8
 LazyData: true
 Imports: stats, dplyr, reldist, splines
 Suggests: plotly
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
 NeedsCompilation: no
-Packaged: 2022-03-22 22:21:42 UTC; maadi
+Packaged: 2022-07-14 18:00:01 UTC; maadi
 Author: Amin Adibi [aut, cre],
   Mohsen Sadatsafavi [aut, cph],
   Abdollah Safari [aut],
   Ainsleigh Hill [aut]
 Maintainer: Amin Adibi <adibi@alumni.ubc.ca>
 Repository: CRAN
-Date/Publication: 2022-03-22 22:40:02 UTC
+Date/Publication: 2022-07-15 13:00:09 UTC
