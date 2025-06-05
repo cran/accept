@@ -4,14 +4,25 @@
 \alias{accept}
 \title{A flexible version of ACCEPT 2.0 model, which imputes predictors using MICE approach.}
 \usage{
-accept(data, version = "flexccept", prediction_interval = FALSE, ...)
+accept(
+  newdata,
+  format = "tibble",
+  version = "accept2",
+  prediction_interval = FALSE,
+  return_predictors = FALSE,
+  ...
+)
 }
 \arguments{
-\item{data}{new patient data with missing values to be imputed before prediction with the same format as accept samplePatients.}
+\item{newdata}{new patient data with missing values to be imputed before prediction with the same format as accept samplePatients.}
 
-\item{version}{indicates which version of ACCEPT needs to be called.}
+\item{format}{default is "tibble". Can also be set to "json".}
 
-\item{prediction_interval}{default is FALSE If set to true, returns prediction intervals of the predictions.}
+\item{version}{indicates which version of ACCEPT needs to be called. Options include "accept1", "accept2", and "flexccept"}
+
+\item{prediction_interval}{default is FALSE. If set to TRUE, returns prediction intervals of the predictions.}
+
+\item{return_predictors}{default is FALSE. IF set to TRUE, returns the predictors along with prediction results.}
 
 \item{...}{for other versions of accept.}
 }
@@ -22,5 +33,5 @@ patientData with prediction.
 A flexible version of ACCEPT 2.0 model, which imputes predictors using MICE approach.
 }
 \examples{
-results <- accept(data = samplePatients)
+results <- accept(newdata = samplePatients)
 }
